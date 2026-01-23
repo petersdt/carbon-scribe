@@ -2,41 +2,31 @@ package auth
 
 import (
 	"errors"
-
-	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService struct {
+	users map[string]string // map[email]password
 }
 
 func NewAuthService() *AuthService {
-	return &AuthService{}
+	return &AuthService{users: make(map[string]string)}
 }
 
-func (s *AuthService) Register(email string, password string) error {
-	if email == "" || password == "" {
-		return errors.New("email and password are required")
+func (s *AuthService) Register(email, password string) error {
+	if _, exists := s.users[email]; exists {
+		return errors.New("user already exists")
 	}
-
-	_, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-
-	// NOTE:
-	// This is where DB persistence will go later.
-	// For now, we just simulate success.
-
+	s.users[email] = password
 	return nil
 }
 
-func (s *AuthService) Login(email string, password string) error {
-	if email == "" || password == "" {
-		return errors.New("email and password are required")
+func (s *AuthService) Login(email, password string) error {
+	pass, exists := s.users[email]
+	if !exists {
+		return errors.New("user not found")
 	}
-
-	// NOTE:
-	// This is where user lookup + password comparison will go later.
-
+	if pass != password {
+		return errors.New("invalid password")
+	}
 	return nil
 }

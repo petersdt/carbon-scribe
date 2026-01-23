@@ -1,8 +1,9 @@
 package auth
 
-import "time"
+import (
+	"time"
+)
 
-// User represents an authenticated platform user
 type User struct {
 	ID            string    `json:"id"`
 	Email         string    `json:"email"`

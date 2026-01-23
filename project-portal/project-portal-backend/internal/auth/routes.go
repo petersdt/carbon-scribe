@@ -1,9 +1,16 @@
 package auth
 
-import "net/http"
+import "github.com/gin-gonic/gin"
 
-func RegisterRoutes(mux *http.ServeMux, handler *Handler) {
-	mux.HandleFunc("/auth/ping", handler.Ping)
-	mux.HandleFunc("/auth/register", handler.Register)
-	mux.HandleFunc("/auth/login", handler.Login)
+func RegisterRoutes(r *gin.Engine, handler *Handler) {
+	authGroup := r.Group("/auth")
+	{
+		authGroup.GET("/ping", handler.Ping)
+		authGroup.POST("/register", handler.Register)
+		authGroup.POST("/login", handler.Login)
+
+		// Submission endpoints
+		authGroup.POST("/submit", SubmitQuest)
+		authGroup.GET("/submissions", ListSubmissions)
+	}
 }
