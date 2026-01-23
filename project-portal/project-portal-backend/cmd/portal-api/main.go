@@ -130,7 +130,7 @@ func loadConfig() *Config {
 
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
-		databaseURL = "postgres://postgres:postgres@localhost:5432/carbonscribe?sslmode=disable"
+		databaseURL = "postgres://romeoscript@localhost:5432/carbonscribe_portal?sslmode=disable"
 	}
 
 	debug := os.Getenv("DEBUG") == "true" || os.Getenv("SERVER_MODE") == "development"
