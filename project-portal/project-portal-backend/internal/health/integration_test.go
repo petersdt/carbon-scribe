@@ -7,11 +7,13 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"carbon-scribe/project-portal/project-portal-backend/internal/health"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"gorm.io/datatypes"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -36,7 +38,7 @@ func setupTestRouter(t *testing.T) (*gin.Engine, *gorm.DB) {
 	health.RegisterRoutes(router, handler)
 
 	// Clean up database tables for isolation
-	db.Exec("TRUNCATE TABLE system_metrics, service_health_checks, health_check_results, system_alerts RESTART IDENTITY CASCADE")
+	db.Exec("TRUNCATE TABLE system_metrics, service_health_checks, health_check_results, system_alerts, system_status_snapshots RESTART IDENTITY CASCADE")
 
 	return router, db
 }
@@ -241,4 +243,34 @@ func TestAlertsResource(t *testing.T) {
 		assert.Equal(t, "00000000-0000-0000-0000-000000000001", *ackAlert.AcknowledgedBy)
 		assert.NotNil(t, ackAlert.AcknowledgedAt)
 	}
+}
+
+func TestDailyReportResource(t *testing.T) {
+	router, db := setupTestRouter(t)
+
+	// Seed a test snapshot
+	testSnapshot := health.SystemStatusSnapshot{
+		SnapshotTime:      time.Now(),
+		SnapshotType:      "daily",
+		OverallStatus:     "healthy",
+		ServicesTotal:     5,
+		ServicesHealthy:   5,
+		ServicesDegraded:  0,
+		ServicesUnhealthy: 0,
+		ServiceStatus:     datatypes.JSON([]byte(`{"api": "up"}`)),
+		MetricSummaries:   datatypes.JSON([]byte(`{"p99": 100}`)),
+	}
+	db.Create(&testSnapshot)
+
+	// GET /reports/daily
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/api/v1/health/reports/daily", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var report health.SystemStatusSnapshot
+	json.Unmarshal(w.Body.Bytes(), &report)
+	assert.Equal(t, "daily", report.SnapshotType)
+	assert.Equal(t, "healthy", report.OverallStatus)
+	assert.Equal(t, 5, report.ServicesTotal)
 }

@@ -25,6 +25,9 @@ type Repository interface {
 	GetSystemAlertByID(ctx context.Context, id string) (*SystemAlert, error)
 	QuerySystemAlerts(ctx context.Context, query AlertQuery) ([]SystemAlert, error)
 	UpdateSystemAlert(ctx context.Context, alert *SystemAlert) error
+
+	// Reports
+	GetLatestSnapshot(ctx context.Context, snapshotType string) (*SystemStatusSnapshot, error)
 }
 
 // repository implements the Repository interface
@@ -134,4 +137,18 @@ func (r *repository) GetSystemAlertByID(ctx context.Context, id string) (*System
 		return nil, err
 	}
 	return &alert, nil
+}
+
+// ========== Reports ==========
+
+func (r *repository) GetLatestSnapshot(ctx context.Context, snapshotType string) (*SystemStatusSnapshot, error) {
+	var snapshot SystemStatusSnapshot
+	err := r.db.WithContext(ctx).
+		Where("snapshot_type = ?", snapshotType).
+		Order("snapshot_time DESC").
+		First(&snapshot).Error
+	if err != nil {
+		return nil, err
+	}
+	return &snapshot, nil
 }

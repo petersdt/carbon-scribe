@@ -38,6 +38,9 @@ func RegisterRoutes(r *gin.Engine, h *Handler) {
 		// Alerts
 		v1.GET("/alerts", h.GetSystemAlerts)
 		v1.POST("/alerts/:id/acknowledge", h.AcknowledgeAlert)
+
+		// Reports
+		v1.GET("/reports/daily", h.GetDailyReport)
 	}
 }
 
@@ -242,4 +245,29 @@ func (h *Handler) AcknowledgeAlert(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, alert)
+}
+
+// ========== Reports ==========
+
+// GetDailyReport returns the latest daily health report
+// @Summary Get latest daily health report
+// @Description Get the most recent daily system health snapshot
+// @Tags health
+// @Produce json
+// @Success 200 {object} SystemStatusSnapshot
+// @Failure 404 {object} ErrorResponse
+// @Router /api/v1/health/reports/daily [get]
+func (h *Handler) GetDailyReport(c *gin.Context) {
+	report, err := h.service.GetDailyReport(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if report == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "daily report not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, report)
 }

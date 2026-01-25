@@ -26,6 +26,9 @@ type Service interface {
 	// System Alerts
 	GetSystemAlerts(ctx context.Context, query AlertQuery) ([]SystemAlert, error)
 	AcknowledgeAlert(ctx context.Context, id string, userID string) (*SystemAlert, error)
+
+	// Reports
+	GetDailyReport(ctx context.Context) (*SystemStatusSnapshot, error)
 }
 
 const defaultServiceName = "carbon-scribe-project-portal"
@@ -229,4 +232,10 @@ func (s *service) AcknowledgeAlert(ctx context.Context, id string, userID string
 	}
 
 	return alert, nil
+}
+
+// ========== Reports ==========
+
+func (s *service) GetDailyReport(ctx context.Context) (*SystemStatusSnapshot, error) {
+	return s.repo.GetLatestSnapshot(ctx, "daily")
 }
