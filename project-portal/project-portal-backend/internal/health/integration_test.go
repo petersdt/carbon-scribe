@@ -37,7 +37,7 @@ func setupTestRouter(t *testing.T) (*gin.Engine, *gorm.DB) {
 	repo := health.NewRepository(db)
 	service := health.NewService(repo)
 	handler := health.NewHandler(service)
-	health.RegisterRoutes(router, handler)
+	handler.RegisterRoutes(router.Group("/api/v1"))
 
 	// Clean up database tables for isolation
 	db.Exec("TRUNCATE TABLE system_metrics, service_health_checks, health_check_results, system_alerts, system_status_snapshots, service_dependencies RESTART IDENTITY CASCADE")

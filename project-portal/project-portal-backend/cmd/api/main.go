@@ -112,9 +112,6 @@ func main() {
 	// Collaboration routes
 	collaboration.RegisterRoutes(router, collabHandler)
 
-	// Register health routes
-	health.RegisterRoutes(router, healthHandler)
-
 	// Integration routes
 	integration.RegisterRoutes(router, integrationHandler)
 
@@ -123,6 +120,9 @@ func main() {
 	{
 		// Register reports routes under v1
 		reportsHandler.RegisterRoutes(v1)
+
+		// Register health routes under v1
+		healthHandler.RegisterRoutes(v1)
 
 		// Ping endpoint for testing
 		v1.GET("/ping", func(c *gin.Context) {

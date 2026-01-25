@@ -18,35 +18,35 @@ func NewHandler(service Service) *Handler {
 }
 
 // RegisterRoutes registers health routes with the Gin router
-func RegisterRoutes(r *gin.Engine, h *Handler) {
-	v1 := r.Group("/api/v1/health")
+func (h *Handler) RegisterRoutes(router *gin.RouterGroup) {
+	health := router.Group("/health")
 	{
 		// Metrics
-		v1.POST("/metrics", h.CreateSystemMetric)
-		v1.GET("/metrics", h.GetSystemMetrics)
+		health.POST("/metrics", h.CreateSystemMetric)
+		health.GET("/metrics", h.GetSystemMetrics)
 
 		// Status
-		v1.GET("/status", h.GetSystemStatus)
-		v1.GET("/status/detailed", h.GetDetailedStatus)
+		health.GET("/status", h.GetSystemStatus)
+		health.GET("/status/detailed", h.GetDetailedStatus)
 
 		// Services
-		v1.GET("/services", h.GetServicesHealth)
+		health.GET("/services", h.GetServicesHealth)
 
 		// Checks
-		v1.POST("/checks", h.CreateServiceHealthCheck)
+		health.POST("/checks", h.CreateServiceHealthCheck)
 
 		// Alerts
-		v1.GET("/alerts", h.GetSystemAlerts)
-		v1.POST("/alerts/:id/acknowledge", h.AcknowledgeAlert)
+		health.GET("/alerts", h.GetSystemAlerts)
+		health.POST("/alerts/:id/acknowledge", h.AcknowledgeAlert)
 
 		// Reports
-		v1.GET("/reports/daily", h.GetDailyReport)
+		health.GET("/reports/daily", h.GetDailyReport)
 
 		// Dependencies
-		v1.GET("/dependencies", h.GetDependencies)
+		health.GET("/dependencies", h.GetDependencies)
 
 		// Uptime
-		v1.GET("/uptime", h.GetUptimeStats)
+		health.GET("/uptime", h.GetUptimeStats)
 	}
 }
 
