@@ -22,10 +22,10 @@ fn test_full_lifecycle() {
 
     // Auto-deposit during minting
     let project_id = String::from_str(&env, "PROJECT-001");
-    
+
     for i in 1..=100 {
         let should_deposit = client.auto_deposit(&carbon_contract, &i, &project_id, &i);
-        
+
         if i % 20 == 0 {
             assert_eq!(should_deposit, true);
         } else {
@@ -88,7 +88,7 @@ fn test_governance_updates() {
 
     // Verify new rate (10%)
     let project_id = String::from_str(&env, "PROJECT-001");
-    
+
     // With 10% (1000 bp), every 10th token should be deposited
     let should_deposit = client.auto_deposit(&carbon_contract, &10, &project_id, &10);
     assert_eq!(should_deposit, true);

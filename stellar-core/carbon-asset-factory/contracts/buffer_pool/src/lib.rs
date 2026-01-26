@@ -25,11 +25,11 @@ impl BufferPoolContract {
         carbon_asset_contract: Address,
         initial_percentage: i64,
     ) -> Result<(), Error> {
-        if env.storage().instance().has(&soroban_sdk::Symbol::short("admin")) {
+        if env.storage().instance().has(&storage::ADMIN) {
             return Err(Error::AlreadyExists);
         }
 
-        if initial_percentage < 0 || initial_percentage > 10000 {
+        if !(0..=10000).contains(&initial_percentage) {
             return Err(Error::InvalidPercentage);
         }
 
@@ -99,7 +99,9 @@ impl BufferPoolContract {
             return Err(Error::TokenNotFound);
         }
 
-        env.storage().persistent().remove(&(storage::CUSTODY, token_id));
+        env.storage()
+            .persistent()
+            .remove(&(storage::CUSTODY, token_id));
 
         let tvl = get_total_value_locked(&env);
         set_total_value_locked(&env, tvl - 1);
@@ -178,7 +180,7 @@ impl BufferPoolContract {
 
         governance.require_auth();
 
-        if new_percentage < 0 || new_percentage > 10000 {
+        if !(0..=10000).contains(&new_percentage) {
             return Err(Error::InvalidPercentage);
         }
 
@@ -199,8 +201,3 @@ impl BufferPoolContract {
         has_custody_record(&env, token_id)
     }
 }
-
-
-
-
-

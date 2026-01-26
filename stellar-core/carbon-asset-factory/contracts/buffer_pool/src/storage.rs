@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, Address, Env, String, Symbol};
+use soroban_sdk::{contracttype, symbol_short, Address, Env, String, Symbol};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -9,12 +9,12 @@ pub struct CustodyRecord {
     pub project_id: String,
 }
 
-const ADMIN: Symbol = Symbol::short("admin");
-const GOVERNANCE: Symbol = Symbol::short("gov");
-const CARBON_CONTRACT: Symbol = Symbol::short("carbon");
-const REPLENISH_PCT: Symbol = Symbol::short("rep_pct");
-const TVL: Symbol = Symbol::short("tvl");
-pub const CUSTODY: Symbol = Symbol::short("custody");
+pub const ADMIN: Symbol = symbol_short!("admin");
+pub const GOVERNANCE: Symbol = symbol_short!("gov");
+pub const CARBON_CONTRACT: Symbol = symbol_short!("carbon");
+pub const REPLENISH_PCT: Symbol = symbol_short!("rep_pct");
+pub const TVL: Symbol = symbol_short!("tvl");
+pub const CUSTODY: Symbol = symbol_short!("custody");
 
 pub fn get_admin(env: &Env) -> Address {
     env.storage().instance().get(&ADMIN).unwrap()
@@ -67,4 +67,3 @@ pub fn set_custody_record(env: &Env, token_id: u32, record: &CustodyRecord) {
 pub fn has_custody_record(env: &Env, token_id: u32) -> bool {
     env.storage().persistent().has(&(CUSTODY, token_id))
 }
-

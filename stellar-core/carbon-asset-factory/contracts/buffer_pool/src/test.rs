@@ -32,7 +32,7 @@ fn test_initialize_twice_fails() {
 
     client.initialize(&admin, &governance, &carbon_contract, &500);
     let result = client.try_initialize(&admin, &governance, &carbon_contract, &500);
-    
+
     assert!(result.is_err());
 }
 
@@ -44,7 +44,7 @@ fn test_deposit_as_admin() {
 
     let project_id = String::from_str(&env, "PROJECT-001");
     client.deposit(&admin, &1, &project_id);
-    
+
     let tvl = client.get_total_value_locked();
     assert_eq!(tvl, 1);
 
@@ -60,7 +60,7 @@ fn test_deposit_duplicate_fails() {
 
     let project_id = String::from_str(&env, "PROJECT-001");
     client.deposit(&admin, &1, &project_id);
-    
+
     let result = client.try_deposit(&admin, &1, &project_id);
     assert!(result.is_err());
 }
@@ -87,7 +87,7 @@ fn test_auto_deposit_calculation() {
     client.initialize(&admin, &governance, &carbon_contract, &500);
 
     let project_id = String::from_str(&env, "PROJECT-001");
-    
+
     // With 5% (500 bp), every 20th token should be deposited
     let deposited = client.auto_deposit(&carbon_contract, &20, &project_id, &20);
     assert_eq!(deposited, true);
@@ -125,7 +125,7 @@ fn test_get_custody_record() {
 
     let record = client.get_custody_record(&1);
     assert!(record.is_some());
-    
+
     let record = record.unwrap();
     assert_eq!(record.token_id, 1);
     assert_eq!(record.project_id, project_id);
