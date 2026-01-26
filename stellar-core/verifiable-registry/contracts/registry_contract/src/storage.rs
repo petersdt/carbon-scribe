@@ -1,5 +1,5 @@
-use soroban_sdk::{contracttype, Address, Env, String, Vec};
 use crate::types::{DocumentRecord, Error};
+use soroban_sdk::{contracttype, Address, Env, String, Vec};
 
 const DAY_IN_LEDGERS: u32 = 17280; // Approximately 1 day worth of ledgers (5s per ledger)
 const INSTANCE_BUMP_AMOUNT: u32 = 30 * DAY_IN_LEDGERS; // 30 days
@@ -60,10 +60,7 @@ pub fn set_project_owner(env: &Env, project_id: &String, owner: &Address) {
 }
 
 // Document history storage functions
-pub fn get_document_history(
-    env: &Env,
-    project_id: &String,
-) -> Result<Vec<DocumentRecord>, Error> {
+pub fn get_document_history(env: &Env, project_id: &String) -> Result<Vec<DocumentRecord>, Error> {
     let key = StorageKey::DocumentHistory(project_id.clone());
     env.storage()
         .persistent()
@@ -71,11 +68,7 @@ pub fn get_document_history(
         .ok_or(Error::NoDocumentsFound)
 }
 
-pub fn set_document_history(
-    env: &Env,
-    project_id: &String,
-    history: &Vec<DocumentRecord>,
-) {
+pub fn set_document_history(env: &Env, project_id: &String, history: &Vec<DocumentRecord>) {
     let key = StorageKey::DocumentHistory(project_id.clone());
     env.storage().persistent().set(&key, history);
     env.storage()

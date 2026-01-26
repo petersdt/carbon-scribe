@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, contracterror, Address, String};
+use soroban_sdk::{contracterror, contracttype, Address, String};
 
 /// Document record structure storing metadata about an anchored document
 #[contracttype]
