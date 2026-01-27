@@ -1,6 +1,6 @@
 [package]
-name = "registry-contract"
-version = "0.1.0"
+name = "registry_contract"
+version = "0.0.0"
 edition = "2021"
 description = "Registry contract for project metadata anchoring"
 license = "Apache-2.0"

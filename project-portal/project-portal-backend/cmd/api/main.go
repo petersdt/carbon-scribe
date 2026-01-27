@@ -12,8 +12,12 @@ import (
 
 	"carbon-scribe/project-portal/project-portal-backend/internal/auth"
 	"carbon-scribe/project-portal/project-portal-backend/internal/collaboration"
+	"carbon-scribe/project-portal/project-portal-backend/internal/config"
+	"carbon-scribe/project-portal/project-portal-backend/internal/health"
 	"carbon-scribe/project-portal/project-portal-backend/internal/integration"
 	"carbon-scribe/project-portal/project-portal-backend/internal/reports"
+	"carbon-scribe/project-portal/project-portal-backend/internal/search"
+	"carbon-scribe/project-portal/project-portal-backend/pkg/elastic"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -22,13 +26,6 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// Config holds application configuration
-type Config struct {
-	Port        string
-	DatabaseURL string
-	Debug       bool
-}
-
 func main() {
 
 	if err := godotenv.Load(); err != nil {
@@ -36,10 +33,13 @@ func main() {
 	}
 
 	// Load configuration
-	config := loadConfig()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("❌ Failed to load configuration: %v", err)
+	}
 
 	// Initialize database connection
-	db, err := initDatabase(config)
+	db, err := initDatabase(cfg)
 	if err != nil {
 		log.Fatalf("❌ Failed to connect to database: %v", err)
 	}
@@ -50,12 +50,34 @@ func main() {
 		log.Printf("⚠️ Migration warnings: %v", err)
 	}
 
+	// Initialize Elasticsearch client
+	esClient, err := elastic.NewClient(elastic.Config{
+		Addresses: cfg.Elasticsearch.Addresses,
+		Username:  cfg.Elasticsearch.Username,
+		Password:  cfg.Elasticsearch.Password,
+		CloudID:   cfg.Elasticsearch.CloudID,
+		APIKey:    cfg.Elasticsearch.APIKey,
+	})
+	if err != nil {
+		log.Printf("⚠️ Failed to create Elasticsearch client: %v", err)
+	} else {
+		log.Println("✅ Elasticsearch client initialized")
+	}
+
 	// Initialize all services
+	searchRepo := search.NewRepository(esClient)
+	searchService := search.NewService(searchRepo)
+	searchHandler := search.NewHandler(searchService)
+
 	authHandler := &auth.Handler{}
 
 	collabRepo := collaboration.NewRepository(db)
 	collabService := collaboration.NewService(collabRepo)
 	collabHandler := collaboration.NewHandler(collabService)
+
+	healthRepo := health.NewRepository(db)
+	healthService := health.NewService(healthRepo)
+	healthHandler := health.NewHandler(healthService)
 
 	integrationRepo := integration.NewRepository(db)
 	integrationService := integration.NewService(integrationRepo)
@@ -66,7 +88,7 @@ func main() {
 	reportsHandler := reports.NewHandler(reportsService)
 
 	// Setup Gin
-	if !config.Debug {
+	if !cfg.Debug {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
@@ -82,7 +104,7 @@ func main() {
 			"service":   "carbon-scribe-project-portal",
 			"timestamp": time.Now().Format(time.RFC3339),
 			"version":   "1.0.0",
-			"modules":   []string{"auth", "collaboration", "integration", "reports"},
+			"modules":   []string{"auth", "collaboration", "integration", "reports", "search"},
 		})
 	})
 
@@ -97,6 +119,7 @@ func main() {
 				"collaboration": "/api/collaboration/*",
 				"integration":   "/api/integration/*",
 				"reports":       "/api/v1/reports/*",
+				"search":        "/api/v1/search/*",
 			},
 		})
 	})
@@ -116,6 +139,12 @@ func main() {
 		// Register reports routes under v1
 		reportsHandler.RegisterRoutes(v1)
 
+		// Register health routes under v1
+		healthHandler.RegisterRoutes(v1)
+
+		// Register search routes under v1
+		searchHandler.RegisterRoutes(v1)
+
 		// Ping endpoint for testing
 		v1.GET("/ping", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"message": "pong", "timestamp": time.Now().Unix()})
@@ -124,7 +153,7 @@ func main() {
 
 	// Create HTTP server with proper timeouts
 	server := &http.Server{
-		Addr:         fmt.Sprintf(":%s", config.Port),
+		Addr:         fmt.Sprintf(":%s", cfg.Port),
 		Handler:      router,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
@@ -137,14 +166,16 @@ func main() {
 
 	// Start server in goroutine
 	go func() {
-		fmt.Printf("🚀 Server starting on port %s\n", config.Port)
-		fmt.Printf("📡 Listening on http://localhost:%s\n", config.Port)
-		fmt.Printf("📊 Health check: http://localhost:%s/health\n", config.Port)
+		fmt.Printf("🚀 Server starting on port %s\n", cfg.Port)
+		fmt.Printf("📡 Listening on http://localhost:%s\n", cfg.Port)
+		fmt.Printf("📊 Health check: http://localhost:%s/health\n", cfg.Port)
 		fmt.Println("🔗 Available endpoints:")
 		fmt.Println("   - Authentication: /api/auth/*")
 		fmt.Println("   - Collaboration: /api/collaboration/*")
+		fmt.Println("   - System health metrics: /api/v1/health/*")
 		fmt.Println("   - Integrations: /api/integration/*")
 		fmt.Println("   - Reports: /api/v1/reports/*")
+		fmt.Println("   - Search: /api/v1/search/*")
 
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("❌ Server failed to start: %v", err)
@@ -167,29 +198,8 @@ func main() {
 	fmt.Println("✅ Server exited gracefully")
 }
 
-// loadConfig loads configuration from environment variables
-func loadConfig() *Config {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-
-	databaseURL := os.Getenv("DATABASE_URL")
-	if databaseURL == "" {
-		databaseURL = "postgres://romeoscript@localhost:5432/carbonscribe_portal?sslmode=disable"
-	}
-
-	debug := os.Getenv("DEBUG") == "true" || os.Getenv("SERVER_MODE") == "development"
-
-	return &Config{
-		Port:        port,
-		DatabaseURL: databaseURL,
-		Debug:       debug,
-	}
-}
-
 // initDatabase initializes the GORM database connection
-func initDatabase(config *Config) (*gorm.DB, error) {
+func initDatabase(config *config.Config) (*gorm.DB, error) {
 	gormConfig := &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 	}
@@ -224,7 +234,7 @@ func initDatabase(config *Config) (*gorm.DB, error) {
 // runAllMigrations runs migrations for all modules
 func runAllMigrations(db *gorm.DB) error {
 	// Auto-migrate all models from all modules
-	return db.AutoMigrate(
+	err := db.AutoMigrate(
 		// Collaboration models
 		&collaboration.ProjectMember{},
 		&collaboration.ProjectInvitation{},
@@ -232,6 +242,14 @@ func runAllMigrations(db *gorm.DB) error {
 		&collaboration.Comment{},
 		&collaboration.Task{},
 		&collaboration.SharedResource{},
+
+		// Health models
+		&health.SystemMetric{},
+		&health.ServiceHealthCheck{},
+		&health.HealthCheckResult{},
+		&health.SystemAlert{},
+		&health.ServiceDependency{},
+		&health.SystemStatusSnapshot{},
 
 		// Integration models
 		&integration.IntegrationConnection{},
@@ -248,6 +266,37 @@ func runAllMigrations(db *gorm.DB) error {
 		&reports.BenchmarkDataset{},
 		&reports.DashboardWidget{},
 	)
+
+	if err != nil {
+		return err
+	}
+
+	// Enable TimescaleDB extension and create hypertables
+	db.Exec("CREATE EXTENSION IF NOT EXISTS timescaledb")
+
+	// Helper to create hypertable if it doesn't exist
+	createHypertable := func(tableName, timeCol string) error {
+		var exists bool
+		db.Raw("SELECT EXISTS (SELECT 1 FROM _timescaledb_catalog.hypertable WHERE table_name = ?)", tableName).Scan(&exists)
+		if !exists {
+			if err := db.Exec(fmt.Sprintf("SELECT create_hypertable('%s', '%s')", tableName, timeCol)).Error; err != nil {
+				return fmt.Errorf("failed to create hypertable %s: %w", tableName, err)
+			}
+		}
+		return nil
+	}
+
+	if err := createHypertable("system_metrics", "time"); err != nil {
+		return err
+	}
+	if err := createHypertable("health_check_results", "check_time"); err != nil {
+		return err
+	}
+	if err := createHypertable("system_status_snapshots", "snapshot_time"); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // corsMiddleware adds CORS headers
