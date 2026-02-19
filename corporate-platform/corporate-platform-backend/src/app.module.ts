@@ -9,7 +9,14 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
-  imports: [RetirementModule, ComplianceModule, MarketplaceModule, StellarModule, WebhooksModule, AnalyticsModule],
+  imports: [
+    RetirementModule,
+    ComplianceModule,
+    MarketplaceModule,
+    StellarModule,
+    WebhooksModule,
+    AnalyticsModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
