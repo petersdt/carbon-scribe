@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RetirementPurpose {
+  SCOPE_1
+  SCOPE_2
+  SCOPE_3
+  CORPORATE
+  EVENTS
+  PRODUCT
+}
+
+model Company {
+  id                      String              @id @default(uuid())
+  name                    String
+  annualRetirementTarget  Float               @default(0)
+  netZeroTarget           Float               @default(0)
+  netZeroTargetYear       Int?
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+
+  retirements             Retirement[]
+  retirementTargets       RetirementTarget[]
+
+  @@map("companies")
+}
+
+model Retirement {
+  id          String              @id @default(uuid())
+  companyId   String
+  amount      Float
+  purpose     RetirementPurpose
+  retiredAt   DateTime            @default(now())
+  createdAt   DateTime            @default(now())
+
+  company     Company             @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
+  @@index([retiredAt])
+  @@index([purpose])
+  @@map("retirements")
+}
+
+model RetirementTarget {
+  id          String   @id @default(uuid())
+  companyId   String
+  year        Int
+  month       Int
+  target      Float
+
+  company     Company  @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, year, month])
+  @@map("retirement_targets")
+}
