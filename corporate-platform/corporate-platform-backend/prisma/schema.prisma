@@ -17,7 +17,7 @@ enum RetirementPurpose {
 }
 
 model Company {
-  id                      String              @id @default(uuid())
+  id                      String              @id @default(cuid())
   name                    String
   annualRetirementTarget  Float               @default(0)
   netZeroTarget           Float               @default(0)
@@ -31,24 +31,76 @@ model Company {
   @@map("companies")
 }
 
-model Retirement {
-  id          String              @id @default(uuid())
-  companyId   String
-  amount      Float
-  purpose     RetirementPurpose
-  retiredAt   DateTime            @default(now())
-  createdAt   DateTime            @default(now())
+model Credit {
+  id          String       @id @default(cuid())
+  projectName String
+  totalAmount Int
+  available   Int
+  retirements Retirement[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
 
-  company     Company             @relation(fields: [companyId], references: [id])
+model Retirement {
+  id                String              @id @default(cuid())
+  companyId         String
+  company           Company             @relation(fields: [companyId], references: [id])
+  userId            String              // User who performed retirement
+
+  creditId          String
+  credit            Credit              @relation(fields: [creditId], references: [id])
+
+  // Retirement details
+  amount            Float
+  purpose           String              // scope1, scope2, scope3, corporate, events, product
+  purposeDetails    String?             // Additional context
+
+  // Pricing
+  priceAtRetirement Float
+
+  // Certificate details
+  certificateId     String?             @unique
+  certificateUrl    String?
+
+  // Blockchain
+  transactionHash   String?
+  transactionUrl    String?
+  verifiedAt        DateTime?
+
+  // Metadata
+  retiredAt         DateTime            @default(now())
+
+  // Relations
+  certificate       RetirementCertificate?
 
   @@index([companyId])
-  @@index([retiredAt])
+  @@index([creditId])
   @@index([purpose])
-  @@map("retirements")
+  @@index([retiredAt])
+}
+
+model RetirementCertificate {
+  id                String    @id @default(cuid())
+  retirementId      String    @unique
+  retirement        Retirement @relation(fields: [retirementId], references: [id])
+
+  certificateNumber String    @unique // e.g., "RET-2024-001234"
+  pdfUrl            String
+  ipfsHash          String?   // IPFS storage for permanence
+
+  // Certificate data (snapshot)
+  companyName       String
+  retirementDate    DateTime
+  creditProject     String
+  creditAmount      Int
+  creditPurpose     String
+  transactionHash   String?
+
+  createdAt         DateTime  @default(now())
 }
 
 model RetirementTarget {
-  id          String   @id @default(uuid())
+  id          String   @id @default(cuid())
   companyId   String
   year        Int
   month       Int
