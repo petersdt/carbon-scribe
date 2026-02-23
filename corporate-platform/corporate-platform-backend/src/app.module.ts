@@ -13,7 +13,7 @@ import { RetirementAnalyticsModule } from './retirement-analytics/analytics.modu
 import { AuthModule } from './auth/auth.module';
 import { CartModule } from './cart/cart.module';
 import { AuctionModule } from './auction/auction.module';
-
+import { SchedulingModule } from './retirement-scheduling/scheduling.module';
 @Module({
   imports: [
     DatabaseModule,
@@ -28,6 +28,7 @@ import { AuctionModule } from './auction/auction.module';
     AuthModule,
     CartModule,
     AuctionModule,
+    SchedulingModule,
   ],
   controllers: [AppController],
   providers: [AppService],
