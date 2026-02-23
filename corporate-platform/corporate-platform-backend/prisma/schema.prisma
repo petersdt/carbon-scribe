@@ -7,13 +7,17 @@ generator client {
 }
 
 model Company {
-  id          String       @id @default(cuid())
-  name        String
-  retirements Retirement[]
-  users       User[]
-  ipWhitelists IpWhitelist[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id                   String            @id @default(cuid())
+  name                 String
+  retirements          Retirement[]
+  users                User[]
+  ipWhitelists         IpWhitelist[]
+  bids                 Bid[]
+  retirementTargets    RetirementTarget[]
+  annualRetirementTarget Int?
+  netZeroTarget          Int?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
 }
 
 model Credit {
@@ -28,6 +32,7 @@ model Credit {
   totalAmount Int
   available   Int
   retirements Retirement[]
+  auctions    Auction[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -106,25 +111,27 @@ model RetirementCertificate {
 }
 
 model User {
-  id                  String    @id @default(cuid())
-  email               String    @unique
-  password            String
-  firstName           String
-  lastName            String
-  role                String    @default("viewer")
-  companyId           String
-  company             Company   @relation(fields: [companyId], references: [id])
-  refreshToken        String?
-  lastLoginAt         DateTime?
-  lastLoginIp         String?
-  isActive            Boolean   @default(true)
-  emailVerified       Boolean   @default(false)
-  passwordResetToken  String?
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  password             String
+  firstName            String
+  lastName             String
+  role                 String    @default("viewer")
+  companyId            String
+  company              Company   @relation(fields: [companyId], references: [id])
+  refreshToken         String?
+  lastLoginAt          DateTime?
+  lastLoginIp          String?
+  isActive             Boolean   @default(true)
+  emailVerified        Boolean   @default(false)
+  passwordResetToken   String?
   passwordResetExpires DateTime?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  sessions            Session[]
-  retirements         Retirement[]
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  sessions             Session[]
+  retirements          Retirement[]
+  bids                 Bid[]
+  wonAuctions          Auction[]
 
   @@unique([companyId, email])
   @@index([email])
@@ -188,4 +195,61 @@ model AuditLog {
   @@index([eventType])
   @@index([timestamp])
   @@index([severity])
+}
+
+model Auction {
+  id                String   @id @default(cuid())
+  creditId          String
+  credit            Credit   @relation(fields: [creditId], references: [id])
+  quantity          Int
+  remaining         Int
+  startPrice        Float
+  currentPrice      Float
+  floorPrice        Float
+  priceDecrement    Float
+  decrementInterval Int
+  startTime         DateTime
+  endTime           DateTime
+  lastPriceUpdate   DateTime
+  status            String
+  winnerId          String?
+  winner            User?    @relation(fields: [winnerId], references: [id])
+  finalPrice        Float?
+  bids              Bid[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([creditId])
+  @@index([status])
+}
+
+model Bid {
+  id        String   @id @default(cuid())
+  auctionId String
+  auction   Auction  @relation(fields: [auctionId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  bidPrice  Float
+  quantity  Int
+  status    String
+  createdAt DateTime @default(now())
+
+  @@index([auctionId])
+  @@index([companyId])
+  @@index([userId])
+}
+
+model RetirementTarget {
+  id        String   @id @default(cuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  year      Int
+  month     Int
+  target    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId, year, month])
 }
