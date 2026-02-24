@@ -104,6 +104,24 @@ export class SecurityService {
     return { success: true };
   }
 
+  // Backwards-compatible wrappers for older naming used in tests/controllers
+  async addWhitelistEntry(
+    companyId: string,
+    cidr: string,
+    userId: string,
+    description?: string,
+  ) {
+    return this.addWhitelist(companyId, userId, cidr, description);
+  }
+
+  async removeWhitelistEntry(
+    companyId: string,
+    id: string,
+    userId: string,
+  ) {
+    return this.removeWhitelist(id, companyId, userId);
+  }
+
   async logEvent(input: SecurityEventInput) {
     const severity =
       input.severity ||
