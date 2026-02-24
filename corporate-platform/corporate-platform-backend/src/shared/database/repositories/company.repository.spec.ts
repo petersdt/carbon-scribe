@@ -4,7 +4,6 @@ import { CompanyRepository } from './company.repository';
 
 describe('CompanyRepository', () => {
   let repository: CompanyRepository;
-  let prisma: PrismaService;
 
   const mockPrisma = {
     company: {
@@ -27,7 +26,6 @@ describe('CompanyRepository', () => {
     }).compile();
 
     repository = module.get<CompanyRepository>(CompanyRepository);
-    prisma = module.get<PrismaService>(PrismaService);
     jest.clearAllMocks();
   });
 
