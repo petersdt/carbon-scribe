@@ -41,7 +41,6 @@ model Credit {
   available   Int
   retirements Retirement[]
   auctions    Auction[]
-  batchRetirements BatchRetirement[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -143,7 +142,6 @@ model User {
   bids                Bid[]
   wonAuctions         Auction[]
   retirementSchedules RetirementSchedule[]
-  batchRetirements    BatchRetirement[]
   auditLogs           AuditLog[]
 
   @@unique([companyId, email])
